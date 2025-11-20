@@ -102,7 +102,7 @@ void toggle_mode(void);
 void send_uart(const char *s);
 void process_cmd(const char *s);
 
-// -------------------- TIM2 ----------------------------
+// -------------------- TIM2 CALLBACK ----------------------------
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim != &htim2) return;
 
@@ -146,6 +146,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     }
 }
 
+//----------------------- EXTI CALLBACK ----------------------
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == BUTTON_PIN) {
         static uint32_t last = 0;
@@ -158,6 +159,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     }
 }
 
+//----------------------- UART CALLBACK ----------------------
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart == &huart2)
@@ -191,6 +193,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     }
 }
 
+//----------------------- CONFIGURATION ----------------------
 void process_cmd(const char *cmd) {
     const char *p = cmd;
 
@@ -276,7 +279,7 @@ void process_cmd(const char *cmd) {
     send_uart("ERROR\r\n");
 }
 
-
+// --------	TOGGLE MODE ----------
 void toggle_mode(void) {
     current_mode = (current_mode == MODE_1) ? MODE_2 : MODE_1;
     apply_mode(current_mode);
@@ -286,6 +289,7 @@ void toggle_mode(void) {
     send_uart(msg);
 }
 
+// --------	APPLY MODE ----------
 void apply_mode(device_mode_t m) {
     if (m == MODE_1) {
         yellow_state = 0;
@@ -305,14 +309,14 @@ void apply_mode(device_mode_t m) {
     }
 }
 
-
-
+// --------	SET LED ----------
 void set_leds(uint8_t g, uint8_t y, uint8_t r) {
     HAL_GPIO_WritePin(LED_GREEN_PORT,  LED_GREEN_PIN,  g ? GPIO_PIN_SET : GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LED_YELLOW_PORT, LED_YELLOW_PIN, y ? GPIO_PIN_RESET : GPIO_PIN_SET);
     HAL_GPIO_WritePin(LED_RED_PORT,    LED_RED_PIN,    r ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
+// --------	SEND UART ----------
 void send_uart(const char *s) {
     HAL_UART_Transmit(&huart2, (uint8_t*)s, strlen(s), 1000);
 }

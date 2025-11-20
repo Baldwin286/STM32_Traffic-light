@@ -443,7 +443,7 @@ void toggle_mode(void);
 void send_uart(const char *s);
 void process_cmd(const char *s);
 
-// -------------------- TIM2 ----------------------------
+// -------------------- TIM2 CALLBACK ----------------------------
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
  80005bc:	b580      	push	{r7, lr}
  80005be:	b082      	sub	sp, #8
@@ -626,6 +626,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 080006e8 <HAL_GPIO_EXTI_Callback>:
 
+//----------------------- EXTI CALLBACK ----------------------
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
  80006e8:	b580      	push	{r7, lr}
  80006ea:	b084      	sub	sp, #16
@@ -666,6 +667,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 08000724 <HAL_UART_RxCpltCallback>:
 
+//----------------------- UART CALLBACK ----------------------
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
  8000724:	b580      	push	{r7, lr}
@@ -775,6 +777,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 080007cc <process_cmd>:
 
+//----------------------- CONFIGURATION ----------------------
 void process_cmd(const char *cmd) {
  80007cc:	b580      	push	{r7, lr}
  80007ce:	b090      	sub	sp, #64	@ 0x40
@@ -1167,7 +1170,7 @@ void process_cmd(const char *cmd) {
 
 08000a9c <toggle_mode>:
 
-
+// --------	TOGGLE MODE ----------
 void toggle_mode(void) {
  8000a9c:	b580      	push	{r7, lr}
  8000a9e:	b086      	sub	sp, #24
@@ -1212,6 +1215,7 @@ void toggle_mode(void) {
 
 08000ae8 <apply_mode>:
 
+// --------	APPLY MODE ----------
 void apply_mode(device_mode_t m) {
  8000ae8:	b580      	push	{r7, lr}
  8000aea:	b082      	sub	sp, #8
@@ -1282,8 +1286,7 @@ void apply_mode(device_mode_t m) {
 
 08000b60 <set_leds>:
 
-
-
+// --------	SET LED ----------
 void set_leds(uint8_t g, uint8_t y, uint8_t r) {
  8000b60:	b580      	push	{r7, lr}
  8000b62:	b082      	sub	sp, #8
@@ -1338,6 +1341,7 @@ void set_leds(uint8_t g, uint8_t y, uint8_t r) {
 
 08000bc8 <send_uart>:
 
+// --------	SEND UART ----------
 void send_uart(const char *s) {
  8000bc8:	b580      	push	{r7, lr}
  8000bca:	b082      	sub	sp, #8
