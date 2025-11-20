@@ -159,59 +159,43 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     }
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if (huart != &huart2) {
-	        HAL_UART_Receive_IT(huart, &rx_byte, 1);
-	        return;
-	    }
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart == &huart2)
+    {
+        if (rx_byte == '\n')
+        {
+            rx_buf[rx_idx] = '\0';
+            if (rx_idx > 0)
+            {
+                process_cmd(rx_buf);
+            }
 
-	    if (rx_idx < RX_BUF_SIZE - 1) {
+            rx_idx = 0;
+            memset(rx_buf, 0, RX_BUF_SIZE);
+        }
+        else if (rx_byte != '\r')
+        {
+            if (rx_idx < RX_BUF_SIZE - 1)
+            {
+                rx_buf[rx_idx++] = rx_byte;
+            }
+            else
+            {
+                send_uart("ERROR: Buffer Full\r\n");
+                rx_idx = 0;
+                memset(rx_buf, 0, RX_BUF_SIZE);
+            }
+        }
 
-	        rx_buf[rx_idx++] = rx_byte;
-
-	        if (rx_byte == '\r' || rx_byte == '\n') {
-
-	            rx_buf[rx_idx] = '\0';
-
-	            char cmd_buf[RX_BUF_SIZE];
-	            strncpy(cmd_buf, (char*)rx_buf, RX_BUF_SIZE);
-	            cmd_buf[RX_BUF_SIZE - 1] = '\0';
-
-	            char *p = cmd_buf;
-
-	            while (*p != '\0' && (*p < 0x20 || *p > 0x7E)) {
-	                p++;
-	            }
-	            while (*p == ' ' || *p == '\r' || *p == '\n') {
-	                p++;
-	            }
-
-	            char *end = p + strlen(p) - 1;
-	            while (end >= p && (*end == ' ' || *end == '\r' || *end == '\n')) {
-	                *end = '\0';
-	                end--;
-	            }
-
-	            if (*p != '\0') {
-	                process_cmd(p);
-	            }
-
-	            rx_idx = 0;
-	            memset(rx_buf, 0, RX_BUF_SIZE);
-
-	        }
-	    } else {
-	        rx_idx = 0;
-	        memset(rx_buf, 0, RX_BUF_SIZE);
-	        send_uart("ERROR: Buffer Full\r\n");
-	    }
-
-	    HAL_UART_Receive_IT(&huart2, &rx_byte, 1);
+        HAL_UART_Receive_IT(&huart2, &rx_byte, 1);
+    }
 }
 
 void process_cmd(const char *cmd) {
     const char *p = cmd;
 
+    send_uart("\r\n");
     send_uart("DBG RAW: ");
     for (const char *q = p; *q; q++) {
         char h[5];
@@ -224,34 +208,34 @@ void process_cmd(const char *cmd) {
     send_uart(p);
     send_uart("\r\n");
 
+    // -------- CFGTIME ----------
     if (strncmp(p, "CFGTIME", 7) == 0) {
+        const char *num_str = p + 7;
         int g, y, r;
-        char numbers_only[RX_BUF_SIZE];
-        int num_idx = 0;
 
-        const char *data_start = p + 7;
+        if (strlen(num_str) == 6 &&
+        		isdigit((unsigned char)num_str[0]) &&
+        		isdigit((unsigned char)num_str[1]) &&
+        		isdigit((unsigned char)num_str[2]) &&
+        		isdigit((unsigned char)num_str[3]) &&
+        		isdigit((unsigned char)num_str[4]) &&
+        		isdigit((unsigned char)num_str[5])) {
 
-        for (const char *q = data_start; *q != '\0' && num_idx < RX_BUF_SIZE - 1; q++) {
-            if (isdigit((unsigned char)*q) || *q == ' ') {
-                numbers_only[num_idx++] = *q;
-            }
-        }
-        numbers_only[num_idx] = '\0';
-
-        if (sscanf(numbers_only, "%d %d %d", &g, &y, &r) == 3 ||
-            sscanf(numbers_only, "%d%d%d", &g, &y, &r) == 3) {
+            g = (num_str[0]-'0')*10 + (num_str[1]-'0');
+            y = (num_str[2]-'0')*10 + (num_str[3]-'0');
+            r = (num_str[4]-'0')*10 + (num_str[5]-'0');
 
             if (g >= GREEN_MIN && g <= GREEN_MAX &&
                 y >= YELLOW_MIN && y <= YELLOW_MAX &&
                 r >= RED_MIN && r <= RED_MAX) {
 
-                time_green = (uint16_t)g;
-                time_yellow = (uint16_t)y;
-                time_red = (uint16_t)r;
+                time_green = g;
+                time_yellow = y;
+                time_red = r;
 
                 send_uart("CFGTIME OK\r\n");
 
-                if (current_mode == MODE_2) {
+                if(current_mode == MODE_2){
                     curr_phase = PHASE_GREEN;
                     phase_remaining = time_green;
                     set_leds(1,0,0);
@@ -259,15 +243,19 @@ void process_cmd(const char *cmd) {
                 return;
             }
         }
+
         send_uart("CFGTIME FAIL\r\n");
         return;
     }
 
+    // -------- CFGMODE ----------
     if (strncmp(p, "CFGMODE", 7) == 0) {
         char m = '0';
 
         if (sscanf(p, "CFGMODE %c", &m) != 1 &&
             sscanf(p, "CFGMODE%c", &m) != 1) {
+            send_uart("CFGMODE FAIL\r\n");
+            return;
         }
 
         if (m=='1' || m=='2') {
@@ -288,6 +276,7 @@ void process_cmd(const char *cmd) {
 
     send_uart("ERROR\r\n");
 }
+
 
 void toggle_mode(void) {
     current_mode = (current_mode == MODE_1) ? MODE_2 : MODE_1;
